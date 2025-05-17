@@ -9,7 +9,7 @@ LogisticRegression::LogisticRegression(double learning_rate, size_t max_iteratio
     , max_iterations_(max_iterations) {}
 
 void LogisticRegression::initialize_parameters(size_t n_features) {
-    weights_ = Matrix(n_features, 1);
+    weights_ = Matrix(n_features, 1);  // Initialize with zeros
     bias_ = 0.0;
 }
 

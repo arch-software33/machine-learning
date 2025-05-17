@@ -88,36 +88,42 @@ void Matrix::multiply_simd(const Matrix& other) {
         throw std::invalid_argument("Invalid dimensions for matrix multiplication");
     }
     
-    std::vector<double> result(rows_ * other.cols_, 0.0);
+    Matrix result(rows_, other.cols_);
     
     for (size_t i = 0; i < rows_; ++i) {
         for (size_t j = 0; j < other.cols_; ++j) {
-            __m256d sum = _mm256_setzero_pd();
+            double sum = 0.0;
             size_t k = 0;
             
-            // Process 4 elements at a time
+            // Process 4 elements at a time using AVX
+            __m256d sum_vec = _mm256_setzero_pd();
             for (; k + 3 < cols_; k += 4) {
                 __m256d a = _mm256_loadu_pd(&data_[i * cols_ + k]);
-                __m256d b = _mm256_loadu_pd(&other.data_[k * other.cols_ + j]);
-                sum = _mm256_fmadd_pd(a, b, sum);
+                __m256d b = _mm256_set_pd(
+                    other.data_[(k + 3) * other.cols_ + j],
+                    other.data_[(k + 2) * other.cols_ + j],
+                    other.data_[(k + 1) * other.cols_ + j],
+                    other.data_[k * other.cols_ + j]
+                );
+                __m256d prod = _mm256_mul_pd(a, b);
+                sum_vec = _mm256_add_pd(sum_vec, prod);
             }
             
             // Horizontal sum
             double temp[4];
-            _mm256_storeu_pd(temp, sum);
-            double final_sum = temp[0] + temp[1] + temp[2] + temp[3];
+            _mm256_storeu_pd(temp, sum_vec);
+            sum = temp[0] + temp[1] + temp[2] + temp[3];
             
             // Handle remaining elements
             for (; k < cols_; ++k) {
-                final_sum += data_[i * cols_ + k] * other.data_[k * other.cols_ + j];
+                sum += data_[i * cols_ + k] * other.data_[k * other.cols_ + j];
             }
             
-            result[i * other.cols_ + j] = final_sum;
+            result.data_[i * other.cols_ + j] = sum;
         }
     }
     
-    cols_ = other.cols_;
-    data_ = std::move(result);
+    *this = std::move(result);
 }
 
 Matrix Matrix::transpose() const {
@@ -179,6 +185,92 @@ Matrix identity(size_t size) {
     for (size_t i = 0; i < size; ++i) {
         result.at(i, i) = 1.0;
     }
+    return result;
+}
+
+Matrix Matrix::operator*(double scalar) const {
+    Matrix result(*this);
+    for (auto& val : result.data_) {
+        val *= scalar;
+    }
+    return result;
+}
+
+Matrix& Matrix::operator*=(double scalar) {
+    for (auto& val : data_) {
+        val *= scalar;
+    }
+    return *this;
+}
+
+Matrix Matrix::operator+(const Matrix& other) const {
+    check_dimensions(other);
+    Matrix result(*this);
+    for (size_t i = 0; i < data_.size(); ++i) {
+        result.data_[i] += other.data_[i];
+    }
+    return result;
+}
+
+Matrix Matrix::operator-(const Matrix& other) const {
+    check_dimensions(other);
+    Matrix result(*this);
+    for (size_t i = 0; i < data_.size(); ++i) {
+        result.data_[i] -= other.data_[i];
+    }
+    return result;
+}
+
+Matrix& Matrix::operator+=(const Matrix& other) {
+    check_dimensions(other);
+    for (size_t i = 0; i < data_.size(); ++i) {
+        data_[i] += other.data_[i];
+    }
+    return *this;
+}
+
+Matrix& Matrix::operator-=(const Matrix& other) {
+    check_dimensions(other);
+    for (size_t i = 0; i < data_.size(); ++i) {
+        data_[i] -= other.data_[i];
+    }
+    return *this;
+}
+
+Matrix Matrix::hadamard(const Matrix& other) const {
+    check_dimensions(other);
+    Matrix result(*this);
+    for (size_t i = 0; i < data_.size(); ++i) {
+        result.data_[i] *= other.data_[i];
+    }
+    return result;
+}
+
+Matrix Matrix::apply(double (*func)(double)) const {
+    Matrix result(*this);
+    for (auto& val : result.data_) {
+        val = func(val);
+    }
+    return result;
+}
+
+Matrix Matrix::operator*(const Matrix& other) const {
+    if (cols_ != other.rows_) {
+        throw std::invalid_argument("Invalid dimensions for matrix multiplication");
+    }
+    
+    Matrix result(rows_, other.cols_);
+    
+    for (size_t i = 0; i < rows_; ++i) {
+        for (size_t j = 0; j < other.cols_; ++j) {
+            double sum = 0.0;
+            for (size_t k = 0; k < cols_; ++k) {
+                sum += at(i, k) * other.at(k, j);
+            }
+            result.at(i, j) = sum;
+        }
+    }
+    
     return result;
 }
 

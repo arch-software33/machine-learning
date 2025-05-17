@@ -11,6 +11,7 @@ namespace mlcpp {
 class Matrix {
 public:
     // Constructors
+    Matrix() : rows_(0), cols_(0) {}  // Default constructor
     Matrix(size_t rows, size_t cols);
     Matrix(const Matrix& other);
     Matrix(Matrix&& other) noexcept;
@@ -23,8 +24,11 @@ public:
     Matrix operator+(const Matrix& other) const;
     Matrix operator-(const Matrix& other) const;
     Matrix operator*(const Matrix& other) const;
+    Matrix operator*(double scalar) const;  // Scalar multiplication
+    friend Matrix operator*(double scalar, const Matrix& mat) { return mat * scalar; }  // Left scalar multiplication
     Matrix& operator+=(const Matrix& other);
     Matrix& operator-=(const Matrix& other);
+    Matrix& operator*=(double scalar);  // Scalar multiplication assignment
     
     // Element-wise operations
     Matrix hadamard(const Matrix& other) const;
@@ -49,6 +53,12 @@ public:
     // Eigen interoperability
     Eigen::MatrixXd toEigen() const;
     static Matrix fromEigen(const Eigen::MatrixXd& eigen_matrix);
+
+    // Friend declarations for utility functions
+    friend Matrix zeros(size_t rows, size_t cols);
+    friend Matrix ones(size_t rows, size_t cols);
+    friend Matrix random(size_t rows, size_t cols, double min, double max);
+    friend Matrix identity(size_t size);
 
 private:
     size_t rows_;

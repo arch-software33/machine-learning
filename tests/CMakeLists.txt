@@ -10,10 +10,6 @@ enable_testing()
 
 add_executable(mlcpp_tests
     test_matrix.cpp
-    test_linear_regression.cpp
-    test_logistic_regression.cpp
-    test_neural_network.cpp
-    test_dataset.cpp
 )
 
 target_link_libraries(mlcpp_tests

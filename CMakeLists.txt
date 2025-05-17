@@ -39,7 +39,6 @@ add_library(mlcpp
     src/logistic_regression.cpp
     src/neural_network.cpp
     src/dataset.cpp
-    src/optimizer.cpp
 )
 
 target_include_directories(mlcpp

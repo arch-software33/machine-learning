@@ -7,26 +7,14 @@ namespace mlcpp {
 
 // DenseLayer implementation
 DenseLayer::DenseLayer(size_t input_size, size_t output_size, Activation activation)
-    : activation_(activation) {
-    // Xavier/Glorot initialization
-    std::random_device rd;
-    std::mt19937 gen(rd());
+    : weights_(input_size, output_size)
+    , bias_(1, output_size)
+    , input_(0, 0)  // Will be resized in forward pass
+    , output_before_activation_(0, 0)  // Will be resized in forward pass
+    , activation_(activation) {
+    // Initialize weights with Xavier/Glorot initialization
     double limit = std::sqrt(6.0 / (input_size + output_size));
-    std::uniform_real_distribution<double> dist(-limit, limit);
-    
-    weights_ = Matrix(input_size, output_size);
-    bias_ = Matrix(1, output_size);
-    
-    // Initialize weights and bias
-    for (size_t i = 0; i < input_size; ++i) {
-        for (size_t j = 0; j < output_size; ++j) {
-            weights_.at(i, j) = dist(gen);
-        }
-    }
-    
-    for (size_t j = 0; j < output_size; ++j) {
-        bias_.at(0, j) = 0.0;
-    }
+    weights_ = random(input_size, output_size, -limit, limit);
 }
 
 Matrix DenseLayer::apply_activation(const Matrix& x, Activation activation) {
